@@ -19,7 +19,7 @@ Sebelum menjalankan program, pastikan komputer Anda telah terpasang Python versi
 
 **Clone Repositori**
 ```bash
-git clone https://github.com/USERNAME_ANDA/NAMA_REPO.git
+git clone https://github.com/Rosyiii/PENILAIAN-BERBASIS-AI-GEMINI.git
 cd NAMA_REPO
 ```
 
