@@ -1,0 +1,10 @@
+# Ignore files inside foto_tugas and referensi
+foto_tugas/*
+referensi/*
+
+# But keep the .gitkeep files
+!foto_tugas/.gitkeep
+!referensi/.gitkeep
+
+# Ignore excel output
+rekap_nilai.xlsx
