@@ -24,9 +24,7 @@ TUGAS UTAMA:
 Di awal lampiran, terdapat FOTO BAHAN BACAAN (MATERI ACUAN). Setelah itu terdapat lembar jawaban dari beberapa siswa. Evaluasi setiap jawaban siswa berdasarkan MATERI ACUAN tersebut.
 
 RUBRIK PENILAIAN:
-1. ESTIMASI KATA: Nilai dasar 80 jika tulisan >200 kata, 60 jika <200 kata.
-2. AKURASI MATERI: Tambahan hingga +20 poin jika esai siswa menggunakan konsep yang benar sesuai BAHAN BACAAN.
-3. KESESUAIAN: Jangan berikan nilai pada materi yang tidak dibahas di BAHAN BACAAN.
+1. Deskripsikan Rubrik Penilaianmu disini
 
 ATURAN OUTPUT (SANGAT PENTING):
 - HANYA berikan nilai untuk nama siswa yang lembar jawabannya dilampirkan.
@@ -35,7 +33,7 @@ ATURAN OUTPUT (SANGAT PENTING):
 
 ---SISWA: [Nama Siswa]---
 NILAI: [Angka 0-100]
-CATATAN: [Evaluasi pemahaman konsep, estimasi kata, dan justifikasi poin]
+CATATAN: [Berisi alasan kenapa siswa mendapat nilai tersebut secara singkat dan berkaitan dengan rubrik penilaian yang disebutkan]
 """
 
 PROMPT_RUBRIK_BATCH_TANPA_REFERENSI = """
@@ -45,9 +43,7 @@ TUGAS UTAMA:
 Di bawah ini terdapat lembar jawaban dari beberapa siswa. Evaluasi setiap jawaban siswa berdasarkan kebenaran konsep umum materi.
 
 RUBRIK PENILAIAN:
-1. ESTIMASI KATA: Nilai dasar 80 jika tulisan >200 kata, 60 jika <200 kata.
-2. AKURASI MATERI: Tambahan hingga +20 poin jika esai siswa menggunakan konsep yang benar.
-3. KESESUAIAN: Jangan berikan nilai pada materi yang terbukti keliru atau melenceng dari konteks.
+1. Deskripsikan Rubrik Penilaianmu disini
 
 ATURAN OUTPUT (SANGAT PENTING):
 - HANYA berikan nilai untuk nama siswa yang lembar jawabannya dilampirkan.
@@ -56,7 +52,7 @@ ATURAN OUTPUT (SANGAT PENTING):
 
 ---SISWA: [Nama Siswa]---
 NILAI: [Angka 0-100]
-CATATAN: [Evaluasi pemahaman konsep, estimasi kata, dan justifikasi poin]
+CATATAN: [Berisi alasan kenapa siswa mendapat nilai tersebut secara singkat dan berkaitan dengan rubrik penilaian yang disebutkan]
 """
 
 def dapatkan_model_aktif(api_key):
