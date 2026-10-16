@@ -1,6 +1,6 @@
-# Ignore files inside foto_tugas and referensi
-foto_tugas/*
-referensi/*
+# Ignore files and subfolders inside foto_tugas and referensi
+foto_tugas/**
+referensi/**
 
 # But keep the .gitkeep files
 !foto_tugas/.gitkeep
@@ -8,3 +8,11 @@ referensi/*
 
 # Ignore excel output
 rekap_nilai.xlsx
+
+# Environment variables
+.env
+
+# Python cache & virtual environment
+__pycache__/
+*/__pycache__/
+.venv/

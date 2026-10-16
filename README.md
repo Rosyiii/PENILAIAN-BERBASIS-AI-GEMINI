@@ -1,93 +1,228 @@
 # Sistem Penilaian Tugas Siswa Otomatis Berbasis Gemini AI
 
-Aplikasi Python berbasis kecerdasan buatan (Google Gemini API) yang berfungsi untuk melakukan penilaian otomatis pada tugas atau ujian tulisan tangan siswa. Sistem membaca hasil pindaian foto lembar jawaban siswa dan mengevaluasinya berdasarkan acuan materi yang telah disediakan oleh guru.
+**Dibuat & Dikembangkan oleh:** [Rosyi](https://github.com/Rosyiii)
+
+Aplikasi Python berbasis kecerdasan buatan (Google Gemini API) yang berfungsi untuk melakukan penilaian otomatis pada tugas atau lembar jawaban tulisan tangan siswa. Sistem mengevaluasi jawaban siswa berdasarkan materi acuan soal serta rubrik penilaian yang dapat disesuaikan secara fleksibel.
+
+---
 
 ## 1. Fitur Utama
-- **Pemuatan Referensi Otomatis:** Sistem mampu membaca bahan acuan/materi kunci jawaban (maksimal 5 halaman) dari folder `./referensi` untuk dijadikan standar koreksi oleh AI. Sistem juga memiliki mekanisme penanganan (*fallback*) jika folder ini dibiarkan kosong.
-- **Pengelompokan Multihalaman:** Menggabungkan lembar jawaban yang terdiri dari banyak foto secara otomatis untuk masing-masing siswa (dikelompokkan berdasarkan nama file di karakter awal sebelum `_`).
-- **Batch Processing Cerdas:** Memproses 6–8 siswa sekaligus per satu kali panggilan (request) API. Strategi ini sangat menghemat kuota harian (Request Per Day / RPD) untuk pengguna Gemini API *free-tier*.
-- **Ekspor Otomatis ke Excel:** Mengekstrak hasil penilaian dan catatan evaluasi dari AI secara andal menggunakan Regex fleksibel, lalu menyimpannya ke dalam file rekapitulasi `rekap_nilai.xlsx`.
 
-## 2. Alur Program (Workflow)
-1. **Inisiasi & Pemuatan Referensi:** Program pertama-tama memuat seluruh gambar di folder `./referensi`, merangkumnya menjadi format Base64, dan mempersiapkannya sebagai landasan penilaian.
-2. **Pengelompokan Siswa:** Program memindai folder `./foto_tugas`. Setiap file diekstrak nama siswanya (teks sebelum karakter `_` pertama, contoh: `Budi_1.jpg` dibaca `Budi`). Foto-foto dengan nama siswa yang sama digabungkan ke dalam satu entri penilaian utuh.
-3. **Kompresi Gambar:** Setiap gambar di-resize (maksimal dimensi 1024px) dan dikompresi agar pembacaan OCR optimal namun tetap mencegah *error* atau batas maksimal beban memori (*bandwidth*).
-4. **Eksekusi API (Batching):** Siswa-siswa dibagi menjadi *batch* (standar: 6 siswa per *batch*). Pada setiap *batch*, program menyatukan dan mengirimkan:
-   - *Prompt* Rubrik Penilaian
-   - Gambar Bahan Bacaan Acuan (jika ada)
-   - Gambar-Gambar Lembar Jawaban Siswa
-5. **Parsing & Ekspor Data:** AI mengembalikan teks hasil evaluasi. Program secara pintar mencari potongan teks untuk tiap-tiap siswa lalu merangkumnya menjadi DataFrame yang disimpan ke `rekap_nilai.xlsx`.
+- **Pemisahan Konfigurasi Aman (`.env`):** Seluruh kredensial rahasia (`GEMINI_API_KEY`) dan path folder dikelola melalui file environment, menjaga kerahasiaan saat kode dibagikan ke repository.
+- **Dua Opsi Format Lembar Jawab Siswa:**
+  - **Opsi 1 (Per File):** Semua file diletakkan langsung di dalam folder tugas dengan format nama file `[NAMA]_[keterangan].jpg`.
+  - **Opsi 2 (Per Folder Bertingkat):** Menata berkas berjenjang per kelas dan per siswa (`foto_tugas/Kelas/Nama (NIS)/foto.jpg`), memungkinkan koreksi massal untuk banyak kelas sekaligus dalam sekali jalan.
+- **Validasi Format & Pembatalan Otomatis (Fail-Safe):** Jika struktur berkas atau folder tidak sesuai dengan opsi yang dipilih, sistem membatalkan proses secara aman tanpa membuat panggilan API sia-sia.
+- **Penanganan Otomatis Kuota / Token Habis (Live Recovery):** Jika di tengah pengerjaan token/kuota harian Gemini habis (HTTP 429 / Resource Exhausted), sistem menjeda pengerjaan, meminta input `GEMINI_API_KEY` baru langsung di CMD, otomatis memperbarui file `.env`, dan melanjutkan batch yang tertunda tanpa mengulang siswa yang sudah dikoreksi.
+- **Simpan Progres Bertahap:** Setiap kali satu batch selesai dinilai, hasilnya langsung disimpan ke Excel sehingga progres tidak akan hilang jika proses terputus.
+- **Pemuatan Rubrik Multi-Format (`prompts/`):** Guru dapat mengubah rubrik/kriteria penilaian tanpa menyentuh kode program. Mendukung format **`.docx`**, **`.txt`**, dan **`.md`**.
+- **Materi Acuan Fleksibel (`referensi/`):** Mendukung dokumen soal atau bahan bacaan acuan berbasis teks (**PDF**, **DOCX**, **TXT**, **MD**) serta foto/skema acuan (**JPG**, **PNG**, **WEBP**).
+- **Ekspor Otomatis ke Excel:** Menyimpan rekapitulasi nilai, kelas, NIS, jumlah halaman jawaban, dan catatan evaluasi/justifikasi AI ke dalam berkas `rekap_nilai.xlsx`.
 
-## 3. Cara Penggunaan / Cara Menjalankan Kode
+---
 
-### Prasyarat Instalasi
-Sebelum menjalankan program, pastikan Python sudah terinstal di komputer Anda (versi 3.8 ke atas direkomendasikan). Cek dengan perintah di Terminal/CMD:
+## 2. Struktur Direktori Proyek
+
+```text
+├── foto_tugas/                     # (Input) Foto lembar tugas siswa (.jpg/.png/.webp)
+│   # --- Opsi 1: Format Per File ---
+│   ├── AHMAD PRATAMA_lembar1.jpg
+│   ├── AHMAD PRATAMA_lembar2.jpg
+│   └── BUDI SANTOSO_01.jpg
+│   # --- ATAU Opsi 2: Format Per Folder ---
+│   ├── Kelas 10-A/
+│   │   ├── 12345 - Ahmad Pratama/
+│   │   │   ├── lembar1.jpg
+│   │   │   └── lembar2.jpg
+│   │   └── Budi Santoso/
+│   │       └── tugas.jpg
+│   └── Kelas 10-B/
+│       └── Citra Lestari (12346)/
+│           └── jawaban.jpg
+├── referensi/                      # (Input) Soal/kunci acuan (.pdf/.docx/.txt/.md/.jpg/.png)
+├── prompts/                        # (Input) File rubrik penilaian (.docx/.txt/.md)
+│   ├── rubrik_dengan_referensi.md  # Rubrik jika bahan acuan tersedia
+│   └── rubrik_tanpa_referensi.md   # Rubrik standar pengetahuan umum
+├── utils/                          # Modul utilitas sistem
+│   ├── __init__.py
+│   └── document_reader.py          # Parser dokumen rubrik dan referensi
+├── .env                            # Konfigurasi lokal & API Key (Private, jangan di-commit)
+├── .env.example                    # Template konfigurasi environment
+├── .gitignore                      # Aturan pengecualian berkas Git
+├── requirements.txt                # Daftar pustaka Python yang dibutuhkan
+├── sistem_penilaian.py             # Skrip utama alur evaluasi
+├── ISSUE_TRACKER.md                # Pelacak progres & arsitektur proyek
+└── rekap_nilai.xlsx                # (Output) Rekapitulasi hasil penilaian
+```
+
+---
+
+## 3. Prasyarat Sistem
+
+- **Python:** Versi 3.9 atau yang lebih baru.
+- **Google AI Studio API Key:** Dapatkan kunci API gratis di [Google AI Studio](https://aistudio.google.com/app/apikey).
+
+Periksa ketersediaan Python di terminal Anda:
 ```bash
 python --version
 ```
-Jika Anda belum memiliki Python, silakan unduh dan instal dari [python.org](https://www.python.org/).
 
-Selanjutnya, instal pustaka (*library*) pendukung yang dibutuhkan (`requests`, `pandas`, `Pillow`, `openpyxl`). Buka Terminal atau Command Prompt lalu jalankan:
-```bash
-pip install requests pandas Pillow openpyxl
-```
+---
 
-### Konfigurasi API Key
-1. Dapatkan API Key secara gratis melalui Google AI Studio: [https://aistudio.google.com/app/apikey](https://aistudio.google.com/app/apikey).
-2. Buka file `sistem_penilaian.py` menggunakan teks editor (misalnya VS Code atau Notepad).
-3. Cari baris konfigurasi `API_KEY` (biasanya di bagian atas) dan ubah nilainya menjadi API Key milik Anda:
-   ```python
-   API_KEY = "MASUKKAN_API_KEY_ANDA_DI_SINI"
+## 4. Langkah Instalasi
+
+1. **Buka Direktori Proyek:**
+   ```bash
+   cd "c:\Users\aster\Downloads\Penilaian Test"
    ```
 
-### Aturan Format Nama File Tugas
-Masukkan semua foto lembar jawaban siswa ke dalam folder `./foto_tugas`.
-Gunakan format penamaan file dengan karakter pemisah *underscore* (`_`) antara "Nama Siswa" dan "Kode Tambahan".
-**Contoh yang Benar:**
-- `Budi Santoso_lembar1.jpg`
-- `Budi Santoso_lembar2.jpg`
-- `Siti Aminah_01.jpg`
+2. **Instal Seluruh Dependensi:**
+   Jalankan instalasi pustaka melalui berkas `requirements.txt`:
+   ```bash
+   pip install -r requirements.txt
+   ```
 
-Sistem akan otomatis mengenali `Budi Santoso` sebagai satu kesatuan siswa yang mengumpulkan 2 lembar jawaban.
+3. **Konfigurasi Lingkungan (`.env`):**
+   Salin berkas `.env.example` menjadi `.env`:
+   ```bash
+   copy .env.example .env
+   ```
+   Buka file `.env` dan masukkan API Key Anda:
+   ```env
+   GEMINI_API_KEY=AIzaSy...masukkan_kunci_anda_di_sini
+   FOLDER_TUGAS=./foto_tugas
+   FOLDER_REFERENSI=./referensi
+   FOLDER_PROMPTS=./prompts
+   OUTPUT_EXCEL=rekap_nilai.xlsx
+   SISWA_PER_BATCH=6
+   ```
 
-### Direktori Bahan Bacaan
-Jika Anda memiliki acuan materi atau kunci jawaban, letakkan fotonya ke dalam folder `./referensi` (direkomendasikan tidak lebih dari 5 foto). Jika direktori ini dibiarkan kosong, AI akan merubah metode *prompt*-nya dan menilai esai/jawaban siswa berdasarkan pengetahuan dasar secara umum.
+---
 
-### Menyesuaikan Prompt / Rubrik Penilaian
-Guru dapat menyesuaikan standar perolehan skor, kriteria minimal kata, hingga ketegasan penilaian (rubrik).
-Buka `sistem_penilaian.py` menggunakan notepad, lalu ubah teks pada variabel `PROMPT_RUBRIK_BATCH` (untuk penilaian dengan acuan) dan `PROMPT_RUBRIK_BATCH_TANPA_REFERENSI` (untuk penilaian tanpa acuan) sesuai dengan kebutuhan pengujian Anda, jangan lupa disimpan filenya kalau sudah selesai mengubah isi file.
+## 5. Panduan Penggunaan
 
-### Menjalankan Program
-Setelah semua file siap di tempatnya, jalankan program melalui Terminal/Command Prompt di dalam *directory* proyek Anda dengan perintah:
+### A. Menyiapkan Bahan Acuan (`referensi/`)
+- Masukkan dokumen soal, silabus materi, atau kunci jawaban ke folder `referensi/`.
+- Format yang didukung:
+  - **Dokumen Teks:** `.pdf`, `.docx`, `.txt`, `.md`
+  - **Gambar Acuan:** `.jpg`, `.jpeg`, `.png`, `.webp`
+- *Catatan:* Jika folder ini kosong, sistem otomatis beralih menilai berdasarkan pemahaman konsep umum.
+
+### B. Menyesuaikan Rubrik Penilaian (`prompts/`)
+- Cukup buka atau edit berkas di dalam folder `prompts/` (misal: `rubrik_dengan_referensi.md` atau `rubrik_tanpa_referensi.md`).
+- Anda dapat mengubah bobot nilai, estimasi jumlah kata, dan aspek penilaian tanpa perlu mengubah kode Python.
+
+### C. Menyiapkan Lembar Jawaban Siswa (`foto_tugas/`)
+
+Pilih salah satu dari 2 opsi format berikut:
+
+#### Opsi 1: Format Per File (Single Folder)
+- Masukkan seluruh foto tugas langsung ke dalam folder `foto_tugas/`.
+- Gunakan format nama file: `[Nama Siswa]_[Keterangan].jpg` (atau format ekspor LMS Moodle).
+  - Contoh:
+    - `Ahmad Pratama_halaman1.jpg`
+    - `Ahmad Pratama_halaman2.jpg`
+    - `Citra Lestari_55858_tugas.jpg`
+- Sistem akan otomatis menggabungkan file milik siswa yang sama.
+
+#### Opsi 2: Format Per Folder (Bertingkat per Kelas)
+- Cocok jika ingin mengoreksi seluruh siswa sekaligus dari beberapa kelas yang berbeda.
+- Susun struktur folder di dalam `foto_tugas/` sebagai berikut:
+  ```text
+  foto_tugas/
+  |-- <Nama Kelas>/
+      |-- <Nama Siswa (bisa disertai NIS)>/
+          |-- foto1.jpg
+          \-- foto2.jpg
+  ```
+- Contoh format folder siswa yang didukung:
+  - `12345 - Ahmad Pratama` *(NIS: 12345, Nama: Ahmad Pratama)*
+  - `Citra Lestari (12346)` *(NIS: 12346, Nama: Citra Lestari)*
+  - `Budi Santoso` *(Nama: Budi Santoso, tanpa NIS)*
+
+### D. Menjalankan Penilaian
+
+Jalankan skrip utama di terminal/CMD:
 ```bash
 python sistem_penilaian.py
 ```
-Tunggu hingga semua *batch* selesai dievaluasi, dan hasilnya akan langsung tercetak ke *spreadsheet* Excel.
 
-### Troubleshooting (Pesan Error Umum)
-* **Error HTTP 429: Quota exceeded:** Kuota panggilan API gratis (Free Tier) pada akun Google Anda telah habis. Dapatkan API Key baru menggunakan akun Gmail lain melalui Google AI Studio.
-* **Error Folder './foto_tugas' tidak ditemukan:** Pastikan folder `foto_tugas/` berada di direktori yang sama dengan berkas `sistem_penilaian.py`.
+Saat dijalankan, aplikasi akan menampilkan 2 menu konfirmasi interaktif:
 
-## 4. Struktur File & Input/Output Data
-
-**Pohon Direktori:**
+**Konfirmasi 1: Mode Referensi Acuan**
 ```text
-📦 Proyek Penilaian AI
- ┣ 📂 foto_tugas/           # (Input) Berisi pindaian foto tugas/jawaban siswa (.jpg / .png)
- ┣ 📂 referensi/            # (Input) Berisi acuan materi kunci dari guru (.jpg / .png)
- ┣ 📜 .gitignore            # Pengabaian file yang tidak perlu di-upload (misal: env/excel)
- ┣ 📜 sistem_penilaian.py   # Script / Kode Utama Program
- ┣ 📜 README.md             # Dokumentasi dan panduan ini
- ┗ 📊 rekap_nilai.xlsx      # (Output) File hasil penilaian yang dibuat oleh sistem
+=======================================================
+           PILIHAN 1: MODE REFERENSI ACUAN
+=======================================================
+ [1] Dengan Referensi (Gunakan bahan acuan di folder referensi/)
+ [2] Tanpa Referensi  (Pengetahuan umum AI, abaikan folder referensi)
+=======================================================
+Pilih mode referensi (1/2) [Tekan Enter untuk default: 1]: 
 ```
 
-**Input Data:** 
-- Program membaca file gambar dengan format `.jpg`, `.jpeg`, `.png`, atau `.webp`.
-- **Catatan Penting:** Pastikan tulisan pada gambar siswa dapat terbaca oleh mata manusia agar AI (Fitur OCR) juga sanggup mendeteksi tulisannya dengan baik.
+**Konfirmasi 2: Format Lembar Jawab Siswa**
+```text
+=======================================================
+        PILIHAN 2: FORMAT LEMBAR JAWAB SISWA
+=======================================================
+ [1] Per File   (Semua file di foto_tugas/ berformat NAMA_id.jpg)
+ [2] Per Folder (Struktur: foto_tugas/Kelas/Nama/foto.jpg)
+=======================================================
+Pilih format lembar jawab (1/2) [Tekan Enter untuk default: 1]: 
+```
 
-**Output Data:**
-Sistem menghasilkan file `rekap_nilai.xlsx` yang terdiri dari kolom (Header):
-1. **Nama Siswa:** Diambil dari ekstraksi otomatis awalan nama file.
-2. **Jumlah Halaman:** Banyaknya lampiran lembar jawaban yang diserahkan.
-3. **Nilai:** Angka bulat berskala 0 hingga 100.
-4. **Evaluasi Konsep / Catatan:** Alasan komprehensif, evaluasi jumlah kata, dan analisis AI perihal pemberian nilai tersebut.
+> **Validasi Otomatis:**  
+> Jika struktur folder/file tidak sesuai dengan opsi yang Anda pilih, sistem akan langsung membatalkan (cancel) proses dengan menampilkan diagram panduan format yang tepat.
+
+---
+
+## 6. Penanganan Kuota / Token Habis (Live Recovery)
+
+Jika token atau kuota Gemini API habis di tengah-tengah proses pengerjaan (Error HTTP 429 / RESOURCE_EXHAUSTED):
+1. **Sistem Menjeda:** Proses otomatis dijeda tanpa kehilangan data/progres siswa yang sudah selesai dinilai.
+2. **Permintaan API Key Baru di CMD:** Sistem menampilkan prompt langsung di terminal:
+   ```text
+   =================================================================
+         PERMINTAAN INPUT GEMINI_API_KEY BARU
+   =================================================================
+   Kuota / Token Gemini API Anda telah habis atau terkena limit.
+   Masukkan GEMINI_API_KEY baru untuk melanjutkan proses koreksi.
+   
+   >> Masukkan GEMINI_API_KEY baru: 
+   ```
+3. **Pembaruan Otomatis `.env`:** Begitu Anda memasukkan kunci baru, sistem langsung memperbarui variabel `GEMINI_API_KEY` di file `.env` dan sistem memori.
+4. **Melanjutkan Pengerjaan:** Sistem secara otomatis melanjutkan penilaian batch yang tertunda hingga selesai.
+
+---
+
+## 7. Format Output (`rekap_nilai.xlsx`)
+
+File Excel yang dihasilkan memuat kolom-kolom berikut:
+| Kolom | Keterangan |
+| :--- | :--- |
+| **Kelas** | Nama kelas siswa (muncul saat menggunakan format per folder) |
+| **NIS** | Nomor Induk Siswa jika tercantum pada nama folder/file |
+| **Nama Siswa** | Nama lengkap siswa hasil ekstraksi otomatis |
+| **Jumlah Halaman** | Total foto lembar tugas yang dikumpulkan siswa |
+| **Nilai** | Skor numerik (skala 0 - 100) berdasarkan rubrik |
+| **Evaluasi Konsep / Catatan** | Analisis AI: ketepatan materi acuan, estimasi kata, dan justifikasi poin |
+
+---
+
+## 8. Troubleshooting & FAQ
+
+* **`[!] Error: GEMINI_API_KEY belum dikonfigurasi di berkas .env!`**  
+  Sistem akan langsung meminta Anda mengetikkan kunci API di terminal saat pertama kali dijalankan dan menyimpannya ke berkas `.env`.
+* **`[!] FORMAT TIDAK SESUAI - PROSES DIBATALKAN`**  
+  Pastikan berkas foto diletakkan sesuai opsi yang dipilih (file langsung di folder untuk Opsi 1, atau subfolder `Kelas/Nama/` untuk Opsi 2).
+* **Teks Tulisan Tangan Tidak Terbaca Optimal**  
+  Pastikan foto lembar tugas siswa diambil dengan pencahayaan yang cukup, fokus yang tajam, dan tidak terpotong.
+
+---
+
+## 9. Kredit & Pengembang
+
+* **Pengembang / Author:** **Rosyi** ([@Rosyiii](https://github.com/Rosyiii))
+* **Lisensi:** Open-Source Educational Tool
+* **Dibuat dengan:** Python 3 & Google Gemini AI API
+
