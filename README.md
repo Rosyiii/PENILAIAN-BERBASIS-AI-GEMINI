@@ -69,25 +69,48 @@ python --version
 
 ---
 
-## 4. Langkah Instalasi
+## 4. Langkah Instalasi (Clone via GitHub)
 
-1. **Buka Direktori Proyek:**
+1. **Clone Repository dari GitHub:**
+   Buka Terminal / Command Prompt (CMD) / PowerShell, lalu jalankan:
    ```bash
-   cd "c:\Users\aster\Downloads\Penilaian Test"
+   git clone https://github.com/Rosyiii/PENILAIAN-BERBASIS-AI-GEMINI.git
    ```
 
-2. **Instal Seluruh Dependensi:**
-   Jalankan instalasi pustaka melalui berkas `requirements.txt`:
+2. **Masuk ke Direktori Proyek:**
+   ```bash
+   cd PENILAIAN-BERBASIS-AI-GEMINI
+   ```
+
+3. **(Opsional & Disarankan) Buat dan Aktifkan Virtual Environment:**
+   * Di Windows:
+     ```bash
+     python -m venv .venv
+     .venv\Scripts\activate
+     ```
+   * Di Linux / macOS:
+     ```bash
+     python3 -m venv .venv
+     source .venv/bin/activate
+     ```
+
+4. **Instal Seluruh Dependensi:**
    ```bash
    pip install -r requirements.txt
    ```
 
-3. **Konfigurasi Lingkungan (`.env`):**
-   Salin berkas `.env.example` menjadi `.env`:
-   ```bash
-   copy .env.example .env
-   ```
-   Buka file `.env` dan masukkan API Key Anda:
+5. **Konfigurasi Lingkungan (`.env`):**
+   Salin berkas template `.env.example` menjadi `.env`:
+   * Di Windows (CMD / PowerShell):
+     ```bash
+     copy .env.example .env
+     ```
+   * Di Linux / macOS:
+     ```bash
+     cp .env.example .env
+     ```
+
+   Buka berkas `.env` dan masukkan API Key Gemini Anda:
    ```env
    GEMINI_API_KEY=AIzaSy...masukkan_kunci_anda_di_sini
    FOLDER_TUGAS=./foto_tugas
@@ -147,9 +170,8 @@ Jalankan skrip utama di terminal/CMD:
 python sistem_penilaian.py
 ```
 
-Saat dijalankan, aplikasi akan menampilkan 2 menu konfirmasi interaktif:
-
-**Konfirmasi 1: Mode Referensi Acuan**
+**Konfirmasi 1: Mode Referensi Acuan (Menggunakan Referensi atau Tidak)**
+Pada tahap pertama, sistem akan menanyakan apakah evaluasi tugas ingin mengacu pada dokumen/foto materi acuan di folder `referensi/` atau murni pemahaman umum AI:
 ```text
 =======================================================
            PILIHAN 1: MODE REFERENSI ACUAN
@@ -159,6 +181,12 @@ Saat dijalankan, aplikasi akan menampilkan 2 menu konfirmasi interaktif:
 =======================================================
 Pilih mode referensi (1/2) [Tekan Enter untuk default: 1]: 
 ```
+* **Pilih `1` (Dengan Referensi):**  
+  AI akan membaca seluruh teks (PDF/DOCX/TXT/MD) dan gambar acuan (JPG/PNG) di folder `referensi/`, lalu memuat rubrik [prompts/rubrik_dengan_referensi.md](file:///c:/Users/aster/Downloads/Penilaian%20Test/prompts/rubrik_dengan_referensi.md). AI akan mencocokkan kebenaran jawaban siswa secara ketat berdasarkan kunci/materi acuan tersebut.  
+  *(Catatan: Jika folder `referensi/` ternyata kosong, sistem akan memberikan peringatan dan otomatis beralih ke mode pengetahuan umum).*
+* **Pilih `2` (Tanpa Referensi):**  
+  AI akan mengabaikan seluruh isi folder `referensi/` dan memuat rubrik [prompts/rubrik_tanpa_referensi.md](file:///c:/Users/aster/Downloads/Penilaian%20Test/prompts/rubrik_tanpa_referensi.md). AI menilai berdasarkan pemahaman umum konsep keilmuan tanpa perlu menyiapkan materi acuan terlebih dahulu.
+* **Langsung Tekan Enter:** Otomatis memilih mode default (`1 - Dengan Referensi`).
 
 **Konfirmasi 2: Format Lembar Jawab Siswa**
 ```text
