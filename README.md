@@ -57,7 +57,114 @@ Aplikasi Python berbasis kecerdasan buatan (Google Gemini API) yang berfungsi un
 
 ---
 
-## 3. Prasyarat Sistem
+## 3. Alur Kerja Sistem & Anatomi Perintah AI
+
+### A. Diagram Alur Kerja Sistem (Workflow Architecture)
+
+```mermaid
+flowchart TD
+    Start([Mulai: python sistem_penilaian.py]) --> LoadEnv[1. Muat .env & Verifikasi GEMINI_API_KEY]
+    LoadEnv --> Menu1{2. Pilih Mode Acuan:\nDengan / Tanpa Referensi?}
+    Menu1 --> Menu2{3. Pilih Format Tugas:\nPer File / Per Folder?}
+    
+    Menu2 --> ScanFiles[4. Pindai & Kelompokkan Lembar Tugas Siswa]
+    ScanFiles --> ValidCheck{Format Sesuai & Ada Siswa?}
+    ValidCheck -- Tidak Sesuai --> CancelProses([Batalkan Proses & Tampilkan Panduan Format])
+    
+    ValidCheck -- Sesuai Valid --> SplitBatch[5. Bagi Siswa ke dalam Batch\nContoh: 6 siswa per request]
+    SplitBatch --> BuildPayload[6. Susun Bundel Perintah Multimodal AI:\n- Rubrik Penilaian\n- Kunci/Acuan Referensi\n- Foto Jawaban 6 Siswa]
+    
+    BuildPayload --> CallAPI[7. Kirim Request ke Google Gemini API]
+    CallAPI --> CheckAPI{Status Response?}
+    
+    CheckAPI -- 200 OK --> ParseAI[8. Regex Parsing Respon AI:\nAmbil Nilai & Catatan Tiap Siswa]
+    
+    CheckAPI -- Error 404/429/503 --> FallbackModel{Ada Model Cadangan di Daftar?}
+    FallbackModel -- Ya Ada --> SwitchModel[Auto-Fallback ke Model Berikutnya\nContoh: gemini-3.8-flash -> gemini-3.7-flash] --> CallAPI
+    FallbackModel -- Semua Habis --> PauseToken[Jeda Proses: Token / Kuota Habis!\nMinta GEMINI_API_KEY baru via CMD]
+    PauseToken --> InputKey[User Masukkan Key Baru\nAuto-update .env & Reset Model] --> CallAPI
+    
+    ParseAI --> SaveExcel[9. Simpan Progres ke rekap_nilai.xlsx]
+    SaveExcel --> NextBatch{Ada Batch Berikutnya?}
+    NextBatch -- Ya --> BuildPayload
+    NextBatch -- Selesai --> Done([10. Selesai: Rekap Nilai Lengkap])
+```
+
+---
+
+### B. Gambaran Nyata: Apa yang Dikirimkan Sistem ke Model AI?
+
+Sistem mengirimkan sebuah **bundel multimodal (teks + gambar base64)** ke endpoint `generateContent` Gemini. 
+
+Bayangkan seperti seorang guru penguji yang menerima satu map berkas di atas mejanya dengan susunan yang sangat rapi:
+
+```text
+================================================================================
+KONTEN PERMINTAAN (PAYLOAD) YANG DITERIMA GOOGLE GEMINI AI
+================================================================================
+
+[BAGIAN 1: TEKS INSTRUKSI & RUBRIK PENILAIAN]
+Isi berkas dari folder prompts/ (misal: prompts/rubrik_tanpa_referensi.md):
+"Anda adalah seorang guru penilai yang teliti, adil, profesional, dan objektif.
+TUGAS SISWA: Siswa mengerjakan 10 soal matematika/fisika...
+RUBRIK:
+- Diketahui (2), Ditanya (2), Dijawab (2) = 6 poin.
+- Jawaban benar = 4 poin. Total = 100 poin.
+ATURAN OUTPUT: Wajib gunakan format ---SISWA: [Nama]--- NILAI: [0-100] CATATAN: [...]"
+
+--------------------------------------------------------------------------------
+[BAGIAN 2: DOKUMEN ACUAN / REFERENSI] (Hanya jika Mode 'Dengan Referensi' aktif)
+Header: "========================================
+[DOKUMEN ACUAN] BAHAN BACAAN / KUNCI JAWABAN MATERI:
+========================================"
+- Teks narasi/soal resmi (jika ada PDF/DOCX/TXT di folder referensi/)
+- [Gambar Tersemat 1]: Foto Kunci Jawaban / Kisi-kisi (Format Base64 JPEG)
+- [Gambar Tersemat 2]: Foto Pembahasan Resmi
+
+--------------------------------------------------------------------------------
+[BAGIAN 3: LEMBAR JAWABAN SISWA (BATCH 6 SISWA SEKALIGUS)]
+1. Header Siswa 1:
+   "LEMBAR JAWABAN SISWA: Chesta (Kelas: Kelas X-1) (2 halaman)
+    Gunakan format nama persis pada tag output: ---SISWA: Chesta---"
+   - [Gambar Tersemat]: Foto lembar jawaban Chesta Halaman 1
+   - [Gambar Tersemat]: Foto lembar jawaban Chesta Halaman 2
+
+2. Header Siswa 2:
+   "LEMBAR JAWABAN SISWA: Eva Sintya (Kelas: Kelas X-1) (2 halaman)
+    Gunakan format nama persis pada tag output: ---SISWA: Eva Sintya---"
+   - [Gambar Tersemat]: Foto lembar jawaban Eva Sintya Halaman 1
+   - [Gambar Tersemat]: Foto lembar jawaban Eva Sintya Halaman 2
+
+... (berlanjut hingga Siswa ke-6 dalam batch tersebut)
+================================================================================
+```
+
+---
+
+### C. Apa yang Dihasilkan AI & Bagaimana Sistem Mengolahnya?
+
+Google Gemini membaca seluruh foto tulisan tangan siswa, membandingkannya dengan rubrik/kunci, lalu memberikan jawaban terstruktur:
+
+```text
+---SISWA: Chesta---
+NILAI: 86
+CATATAN: Nomor 1 sampai 7 ditulis lengkap diketahui, ditanya, dan dijawab dengan hasil perhitungan yang tepat (70 poin). Nomor 8-9 rumus benar namun keliru saat substitusi angka akhir (12 poin). Nomor 10 benar (10 poin).
+
+---SISWA: Eva Sintya---
+NILAI: 94
+CATATAN: Sistematika penulisan sangat rapi dan konsisten pada 10 soal. Terdapat sedikit kekeliruan perhitungan pada nomor 4.
+```
+
+Program Python menggunakan mesin pencocokan regex:
+1. `---SISWA:\s*([^-\n]+)` $\rightarrow$ Mengekstrak **Nama Siswa**.
+2. `NILAI:\s*(\d+)` $\rightarrow$ Mengekstrak **Nilai Angka**.
+3. `CATATAN:\s*(.*)` $\rightarrow$ Mengekstrak **Alasan & Rincian Evaluasi**.
+
+Data ini langsung disusun menjadi tabel *DataFrame* dan diekspor ke **`rekap_nilai.xlsx`**.
+
+---
+
+## 4. Prasyarat Sistem
 
 - **Python:** Versi 3.9 atau yang lebih baru.
 - **Google AI Studio API Key:** Dapatkan kunci API gratis di [Google AI Studio](https://aistudio.google.com/app/apikey).
@@ -69,7 +176,7 @@ python --version
 
 ---
 
-## 4. Langkah Instalasi (Clone via GitHub)
+## 5. Langkah Instalasi (Clone via GitHub)
 
 1. **Clone Repository dari GitHub:**
    Buka Terminal / Command Prompt (CMD) / PowerShell, lalu jalankan:
@@ -122,7 +229,7 @@ python --version
 
 ---
 
-## 5. Panduan Penggunaan
+## 6. Panduan Penggunaan
 
 ### A. Menyiapkan Bahan Acuan (`referensi/`)
 - Masukkan dokumen soal, silabus materi, atau kunci jawaban ke folder `referensi/`.
@@ -220,7 +327,7 @@ Pilih format lembar jawab (1/2) [Tekan Enter untuk default: 1]:
 
 ---
 
-## 6. Penanganan Kuota / Token Habis (Live Recovery)
+## 7. Penanganan Kuota / Token Habis (Live Recovery)
 
 Jika token atau kuota Gemini API habis di tengah-tengah proses pengerjaan (Error HTTP 429 / RESOURCE_EXHAUSTED):
 1. **Sistem Menjeda:** Proses otomatis dijeda tanpa kehilangan data/progres siswa yang sudah selesai dinilai.
@@ -239,7 +346,7 @@ Jika token atau kuota Gemini API habis di tengah-tengah proses pengerjaan (Error
 
 ---
 
-## 7. Format Output (`rekap_nilai.xlsx`)
+## 8. Format Output (`rekap_nilai.xlsx`)
 
 File Excel yang dihasilkan memuat kolom-kolom berikut:
 | Kolom | Keterangan |
@@ -253,7 +360,7 @@ File Excel yang dihasilkan memuat kolom-kolom berikut:
 
 ---
 
-## 8. Troubleshooting & FAQ
+## 9. Troubleshooting & FAQ
 
 * **`[!] Error: GEMINI_API_KEY belum dikonfigurasi di berkas .env!`**  
   Sistem akan langsung meminta Anda mengetikkan kunci API di terminal saat pertama kali dijalankan dan menyimpannya ke berkas `.env`.
@@ -264,9 +371,10 @@ File Excel yang dihasilkan memuat kolom-kolom berikut:
 
 ---
 
-## 9. Kredit & Pengembang
+## 10. Kredit & Pengembang
 
 * **Pengembang / Author:** **Rosyi** ([@Rosyiii](https://github.com/Rosyiii))
 * **Lisensi:** Open-Source Educational Tool
 * **Dibuat dengan:** Python 3 & Google Gemini AI API
+
 
