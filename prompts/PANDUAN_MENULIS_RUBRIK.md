@@ -84,7 +84,42 @@ Total nilai maksimal: 100 poin (10 poin per nomor).
 
 ---
 
-## 4. Bagian yang Wajib Selalu Dipertahankan (Di Bagian Paling Bawah Prompt)
+## 4. Bagaimana Urutan Halaman Ditentukan oleh Sistem? (Penting!)
+
+Banyak pengguna bertanya: *"Bagaimana sistem tahu foto mana yang menjadi Halaman 1, Halaman 2, dst?"*
+
+### Prinsip Pengurutan: Alfabetis / Nomor Nama Berkas (Alphabetical Sorting)
+Sistem membaca dan mengurutkan berkas secara otomatis **berdasarkan nama file secara berurutan (abjad & angka)**:
+
+1. **Pada Mode Per Folder (`foto_tugas/Kelas/Nama/`):**
+   Beri nama foto di dalam folder siswa dengan angka atau nomor halaman yang jelas:
+   * `1.jpg` atau `hal1.jpg` $\rightarrow$ **Otomatis menjadi Halaman 1**
+   * `2.jpg` atau `hal2.jpg` $\rightarrow$ **Otomatis menjadi Halaman 2**
+   * `3.jpg` atau `hal3.jpg` $\rightarrow$ **Otomatis menjadi Halaman 3**  
+   *(Tips: Jika halaman mencapai belasan, gunakan format 2 digit seperti `01.jpg`, `02.jpg`, dst).*
+
+2. **Pada Mode Per File (`foto_tugas/` langsung):**
+   Sertakan urutan halaman setelah nama siswa:
+   * `Ahmad Pratama_01.jpg` $\rightarrow$ **Halaman 1**
+   * `Ahmad Pratama_02.jpg` $\rightarrow$ **Halaman 2**
+
+3. **Urutan Berkas di Folder `referensi/`:**
+   Sama halnya dengan lembar tugas siswa, berkas di folder referensi dibaca sesuai abjad nama file:
+   * `01_lembar_soal.pdf` $\rightarrow$ dibaca pertama
+   * `02_kunci_hal1.jpg` $\rightarrow$ dibaca kedua
+   * `03_kunci_hal2.jpg` $\rightarrow$ dibaca ketiga
+
+### Urutan Kronologis Bundel yang Diterima AI:
+Ketika sistem mengirimkan data ke Google Gemini, susunan yang diterima AI adalah layaknya membuka map jilid:
+1. **Urutan 1:** Seluruh Teks Rubrik Penilaian (Aturan & bobot nilai Anda).
+2. **Urutan 2:** Bahan Acuan di Folder `referensi/` (Kunci jawaban / soal resmi, jika ada).
+3. **Urutan 3:** Lembar Tugas Siswa Pertama (Header Identitas $\rightarrow$ Foto Halaman 1 $\rightarrow$ Foto Halaman 2).
+4. **Urutan 4:** Lembar Tugas Siswa Kedua (Header Identitas $\rightarrow$ Foto Halaman 1 $\rightarrow$ Foto Halaman 2).
+*(dan seterusnya hingga siswa terakhir dalam batch).*
+
+---
+
+## 5. Bagian yang Wajib Selalu Dipertahankan (Di Bagian Paling Bawah Prompt)
 
 Pastikan 5 baris ini **selalu ada di akhir file prompt Anda tanpa diubah**:
 

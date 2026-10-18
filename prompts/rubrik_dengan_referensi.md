@@ -6,7 +6,7 @@ BAGIAN 1: DESKRIPSI TUGAS SISWA [BOLEH DIUBAH / DISESUAIKAN]
 ================================================================================
 Jelaskan di sini apa tugas yang sedang dikerjakan siswa:
 - Siswa mengerjakan lembar tugas/latihan/ujian tulisan tangan yang dilampirkan.
-- Evaluasi setiap jawaban siswa secara teliti berdasarkan bahan acuan di Bagian 2 dan kriteria di Bagian 3.
+- Evaluasi setiap lembar jawaban siswa secara teliti berdasarkan bahan acuan/kunci pada folder 'referensi/' serta pedoman nilai yang ditentukan di bawah ini.
 
 ================================================================================
 BAGIAN 2: PERAN BAHAN DI FOLDER REFERENSI [BOLEH DIUBAH / DISESUAIKAN]
