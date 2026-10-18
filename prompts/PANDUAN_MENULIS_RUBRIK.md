@@ -1,0 +1,96 @@
+# Panduan Praktis Menulis Rubrik Penilaian untuk Guru & Pengguna
+
+Dokumen ini disusun untuk memudahkan guru dan pengguna awam dalam menyesuaikan kriteria penilaian AI agar hasilnya **100% akurat sesuai harapan** tanpa membuat sistem error.
+
+---
+
+## 1. Aturan Dasar: Mana yang Boleh Diubah & Mana yang DILARANG?
+
+| Bagian Prompt | Boleh Diubah? | Penjelasan |
+| :--- | :---: | :--- |
+| **Deskripsi Tugas Siswa** | **YA (Bebas)** | Jelaskan kepada AI apa yang dikerjakan murid (latihan 10 soal, esai 200 kata, rangkuman, dll.). |
+| **Peran Folder Referensi** | **YA (Bebas)** | Beritahu AI apa isi folder `referensi/` (apakah kunci jawaban, lembar soal, atau bahan bacaan materi). |
+| **Rubrik & Bobot Nilai** | **YA (Bebas)** | Tentukan pembagian poin sesuka hati Anda. Pastikan total nilai maksimal adalah **100**. |
+| **Petunjuk Khusus AI** | **YA (Bebas)** | Tambahkan instruksi seperti toleransi tulisan tangan, rumus yang diperbolehkan, dsb. |
+| **Format Output Sistem** | ⛔ **DILARANG DIUBAH** | **JANGAN UBAH** format `---SISWA: [Nama Siswa]---`, `NILAI: [Angka]`, dan `CATATAN: [Teks]`. Format ini wajib persis karena dibaca oleh kode Python untuk dimasukkan ke file Excel `rekap_nilai.xlsx`. |
+
+---
+
+## 2. Cara Kerja Folder `referensi/`
+
+Folder `referensi/` sangat fleksibel dan dapat digunakan untuk berbagai keperluan:
+
+1. **Sebagai Kunci Jawaban Resmi / Pembahasan:**
+   * Masukkan foto atau PDF kunci jawaban ke folder `referensi/`.
+   * Di dalam file `prompts/rubrik_dengan_referensi.md`, tuliskan:  
+     *"Berkas di folder referensi adalah kunci jawaban resmi. Cocokkan jawaban siswa dengan kunci tersebut."*
+
+2. **Sebagai Lembar Soal Resmi:**
+   * Jika pada lembar tugas siswa hanya tertulis nomor dan jawaban tanpa teks soal, masukkan file soal ke `referensi/`.
+   * Di prompt tuliskan:  
+     *"Berkas di folder referensi adalah lembar soal ulangan. Periksa apakah jawaban siswa menjawab pertanyaan pada soal tersebut."*
+
+3. **Sebagai Materi Bacaan / Buku Acuan:**
+   * Masukkan materi teori atau bahan ajar ke `referensi/`.
+   * Di prompt tuliskan:  
+     *"Bahan di folder referensi adalah materi acuan. Nilai apakah siswa memahami dan menerapkan konsep dari materi tersebut."*
+
+---
+
+## 3. Contoh Template Rubrik untuk Berbagai Tipe Tugas
+
+### Contoh A: Tugas Hitungan Eksakta (Matematika / Fisika / Kimia)
+```markdown
+BAGIAN 1: DESKRIPSI TUGAS SISWA
+Siswa mengerjakan 5 soal hitungan fisika pada lembar tugas masing-masing.
+
+BAGIAN 2: RUBRIK DAN PEDOMAN NILAI
+Total skor maksimal: 100 poin (Tiap soal berbobot 20 poin).
+Untuk setiap nomor soal:
+1. Menuliskan Diketahui dan Ditanya: 5 poin
+2. Menuliskan Rumus yang benar: 5 poin
+3. Langkah perhitungan runtut: 5 poin
+4. Hasil akhir dan satuan benar: 5 poin
+Jika salah hitung tapi rumus benar: berikan 10 poin.
+```
+
+### Contoh B: Tugas Esai / Karangan (Bahasa Indonesia / Sejarah / PKn)
+```markdown
+BAGIAN 1: DESKRIPSI TUGAS SISWA
+Siswa membuat esai minimal 200 kata dengan tema "Pentingnya Menjaga Privasi Data Digital".
+
+BAGIAN 2: RUBRIK DAN PEDOMAN NILAI
+Total skor maksimal: 100 poin:
+1. Panjang Tulisan: Minimal 200 kata mendapatkan 40 poin dasar (kurang dari 200 kata dapat 25 poin).
+2. Kesesuaian dengan Tema: Hingga 30 poin jika membahas perlindungan data pribadi dan dampaknya.
+3. Struktur & Bahasa: Hingga 20 poin untuk kerapian alur kalimat dan penggunaan bahasa yang baik.
+4. Nama Terang: 10 poin jika menuliskan nama jelas di bagian atas lembar kertas.
+```
+
+### Contoh C: Tugas Tanya-Jawab Uraian Pendek (Informatika / Biologi / Teori)
+```markdown
+BAGIAN 1: DESKRIPSI TUGAS SISWA
+Siswa menjawab 10 pertanyaan uraian singkat bab Struktur Jaringan Komputer.
+
+BAGIAN 2: PERAN BAHAN REFERENSI
+Berkas di folder referensi adalah Kunci Jawaban Soal 1-10.
+
+BAGIAN 3: RUBRIK DAN PEDOMAN NILAI
+Total nilai maksimal: 100 poin (10 poin per nomor).
+- Jawaban sesuai kata kunci di kunci jawaban: 10 poin per nomor.
+- Jawaban mendekati atau menggunakan bahasa sendiri tapi maknanya benar: 7-8 poin.
+- Jawaban tidak tepat atau kosong: 0 poin.
+```
+
+---
+
+## 4. Bagian yang Wajib Selalu Dipertahankan (Di Bagian Paling Bawah Prompt)
+
+Pastikan 5 baris ini **selalu ada di akhir file prompt Anda tanpa diubah**:
+
+```text
+---SISWA: [Nama Siswa]---
+NILAI: [Angka 0-100]
+CATATAN: [Evaluasi pemahaman konsep, estimasi kata, dan justifikasi poin]
+```
+Dengan menjaga baris ini tetap utuh, AI akan menghasilkan nilai yang langsung dapat diekspor secara rapi ke `rekap_nilai.xlsx`!

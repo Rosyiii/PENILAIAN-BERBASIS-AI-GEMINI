@@ -7,7 +7,7 @@ referensi/**
 !referensi/.gitkeep
 
 # Ignore excel output
-rekap_nilai.xlsx
+*.xlsx
 
 # Environment variables
 .env

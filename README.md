@@ -132,8 +132,24 @@ python --version
 - *Catatan:* Jika folder ini kosong, sistem otomatis beralih menilai berdasarkan pemahaman konsep umum.
 
 ### B. Menyesuaikan Rubrik Penilaian (`prompts/`)
-- Cukup buka atau edit berkas di dalam folder `prompts/` (misal: `rubrik_dengan_referensi.md` atau `rubrik_tanpa_referensi.md`).
-- Anda dapat mengubah bobot nilai, estimasi jumlah kata, dan aspek penilaian tanpa perlu mengubah kode Python.
+Guru atau pengguna dapat menyesuaikan cara AI menilai tugas dengan mengedit file di folder `prompts/`:
+* [prompts/rubrik_dengan_referensi.md](file:///c:/Users/aster/Downloads/Penilaian%20Test/prompts/rubrik_dengan_referensi.md) (Jika menggunakan berkas acuan/kunci/soal di folder `referensi/`)
+* [prompts/rubrik_tanpa_referensi.md](file:///c:/Users/aster/Downloads/Penilaian%20Test/prompts/rubrik_tanpa_referensi.md) (Jika menilai berdasarkan pengetahuan umum AI)
+* Panduan lengkap contoh rubrik berbagai mata pelajaran dapat dilihat di: [prompts/PANDUAN_MENULIS_RUBRIK.md](file:///c:/Users/aster/Downloads/Penilaian%20Test/prompts/PANDUAN_MENULIS_RUBRIK.md).
+
+#### Aturan Mengubah File Prompt:
+1. **Bagian yang BEBAS Diubah / Disesuaikan Guru:**
+   * **Deskripsi Tugas Siswa:** Jelaskan apa tugas yang dikerjakan murid (contoh: *10 soal hitungan fisika*, *esai 200 kata*, atau *analisis kasus*).
+   * **Peran Berkas di Folder `referensi/`:** Jelaskan kepada AI apa fungsi berkas acuan Anda (*kunci jawaban resmi*, *lembar soal*, atau *materi bacaan*).
+   * **Kriteria & Bobot Nilai:** Bebas tentukan pembagian poin (misal: *cara pengerjaan 6 poin, hasil akhir 4 poin, skala total 0-100*).
+2. **Bagian yang WAJIB JANGAN DIUBAH (Paling Bawah):**
+   * Format teks di bagian paling bawah file prompt **WAJIB dipertahankan apa adanya**:
+     ```text
+     ---SISWA: [Nama Siswa]---
+     NILAI: [Angka 0-100]
+     CATATAN: [Evaluasi pemahaman konsep, poin per nomor, dll]
+     ```
+   * *Alasan:* Format 3 baris ini dibaca otomatis oleh program Python untuk diekspor ke tabel Excel `rekap_nilai.xlsx`. Jika format ini diubah, nilai siswa tidak akan terbaca ke Excel!
 
 ### C. Menyiapkan Lembar Jawaban Siswa (`foto_tugas/`)
 

@@ -101,25 +101,55 @@ def minta_api_key_baru(env_path: str = ".env"):
             return None
 
 
-def dapatkan_model_aktif(api_key):
-    """Mengecek otomatis dan memilih model Flash aktif di akun Anda."""
+# Urutan prioritas model Flash (Generasi terbaru Google Gemini hingga model cadangan)
+DAFTAR_PRIORITAS_MODEL = [
+    "gemini-3.1-flash-lite",
+    "gemini-3.5-flash-lite",
+    "gemini-2.5-flash-lite",
+    "gemini-2.5-flash",
+    "gemini-3.6-flash",
+    "gemini-3.7-flash",
+    "gemini-3.8-flash",
+]
+
+
+def dapatkan_daftar_model_aktif(api_key: str):
+    """Mengecek otomatis dan mengurutkan seluruh model Flash aktif di akun pengguna sesuai prioritas."""
     url = f"https://generativelanguage.googleapis.com/v1beta/models?key={api_key}"
+    daftar_tersedia = []
     try:
         res = requests.get(url, timeout=10)
         if res.status_code == 200:
             models = res.json().get('models', [])
-            flash_models = [m.get('name', '').replace('models/', '') for m in models 
-                            if 'generateContent' in m.get('supportedGenerationMethods', []) and 'flash' in m.get('name', '').lower()]
+            flash_models = [
+                m.get('name', '').replace('models/', '') 
+                for m in models 
+                if 'generateContent' in m.get('supportedGenerationMethods', []) 
+                and 'flash' in m.get('name', '').lower()
+            ]
             
-            prioritas = ['gemini-2.5-flash', 'gemini-3-flash', 'gemini-3.5-flash', 'gemini-2.5-flash-lite', 'gemini-1.5-flash']
-            for pref in prioritas:
-                if pref in flash_models:
-                    return pref
-            if flash_models:
-                return flash_models[0]
-    except Exception:
-        pass
-    return "gemini-2.5-flash"
+            # Urutkan model yang tersedia berdasarkan daftar prioritas
+            for pref in DAFTAR_PRIORITAS_MODEL:
+                if pref in flash_models and pref not in daftar_tersedia:
+                    daftar_tersedia.append(pref)
+
+            # Tambahkan model flash lainnya yang ada di akun
+            for m in flash_models:
+                if m not in daftar_tersedia and not any(x in m for x in ['image', 'tts', 'preview-tts']):
+                    daftar_tersedia.append(m)
+    except Exception as e:
+        print(f" [!] Peringatan: Gagal memuat daftar model dari API ({e}). Menggunakan urutan prioritas standar.")
+
+    if not daftar_tersedia:
+        daftar_tersedia = list(DAFTAR_PRIORITAS_MODEL)
+
+    return daftar_tersedia
+
+
+def dapatkan_model_aktif(api_key: str):
+    """Mengambil model Flash utama paling prioritas."""
+    models = dapatkan_daftar_model_aktif(api_key)
+    return models[0] if models else "gemini-3.8-flash"
 
 
 def foto_ke_base64(path_foto, max_dim=1024):
@@ -375,9 +405,16 @@ def proses_penilaian():
     print(f"\n[INFO] Format Aktif: PER {'FOLDER' if format_mode == 'folder' else 'FILE'}")
     print(f"[INFO] Berhasil memvalidasi {total_siswa} siswa untuk diproses.")
 
-    # 3. Dapatkan Model Aktif Gemini
-    nama_model = dapatkan_model_aktif(API_KEY)
-    print(f"[INFO] Menggunakan model aktif: {nama_model}")
+    # 3. Dapatkan Model Aktif Gemini (Terurut Sesuai Prioritas)
+    daftar_model = dapatkan_daftar_model_aktif(API_KEY)
+    model_idx = 0
+    current_model = daftar_model[model_idx]
+    print(f"[INFO] Model utama aktif: {current_model}")
+    if len(daftar_model) > 1:
+        cadangan = ", ".join(daftar_model[1:4])
+        sisa = len(daftar_model) - 4
+        tambahan = f" (+{sisa} lainnya)" if sisa > 0 else ""
+        print(f"[INFO] Model cadangan fallback: {cadangan}{tambahan}")
 
     # 4. Muat Dokumen Narasi/Foto Acuan Referensi
     teks_ref = ""
@@ -430,7 +467,6 @@ def proses_penilaian():
     siswa_chunks = [daftar_siswa[i:i + SISWA_PER_BATCH] for i in range(0, total_siswa, SISWA_PER_BATCH)]
     
     current_api_key = API_KEY
-    current_model = nama_model
 
     for idx_batch, chunk in enumerate(siswa_chunks, 1):
         nama_siswa_preview = ", ".join([s["nama"] for s in chunk[:2]])
@@ -489,17 +525,26 @@ def proses_penilaian():
         payload = {"contents": [{"parts": parts}]}
         headers = {"Content-Type": "application/json"}
 
-        # Loop pengiriman request dengan penanganan otomatis jika token / kuota habis
+        # Loop pengiriman request dengan auto-fallback model & penanganan kuota habis
         batch_berhasil = False
         res = None
 
         while not batch_berhasil:
+            current_model = daftar_model[model_idx]
             url = f"https://generativelanguage.googleapis.com/v1beta/models/{current_model}:generateContent?key={current_api_key}"
 
             try:
                 res = requests.post(url, json=payload, headers=headers, timeout=180)
             except requests.exceptions.RequestException as e:
-                print(f" [!] Error koneksi ke server Gemini API: {e}")
+                print(f" [!] Error koneksi ke server Gemini API ({current_model}): {e}")
+                if model_idx + 1 < len(daftar_model):
+                    model_lama = current_model
+                    model_idx += 1
+                    current_model = daftar_model[model_idx]
+                    print(f" [->] Mencoba model cadangan berikutnya: {current_model}...")
+                    time.sleep(2)
+                    continue
+
                 print(" [?] Tekan Enter untuk coba lagi, atau ketik 'key' untuk ganti API key, atau 'q' untuk keluar.")
                 pilihan_err = input(">> ").strip().lower()
                 if pilihan_err == 'q':
@@ -508,7 +553,8 @@ def proses_penilaian():
                     kunci_baru = minta_api_key_baru()
                     if kunci_baru:
                         current_api_key = kunci_baru
-                        current_model = dapatkan_model_aktif(current_api_key)
+                        daftar_model = dapatkan_daftar_model_aktif(current_api_key)
+                        model_idx = 0
                 time.sleep(2)
                 continue
 
@@ -516,9 +562,41 @@ def proses_penilaian():
                 batch_berhasil = True
                 break
 
-            # Cek apakah terkena limit kuota / token habis
-            token_habis = False
             res_text = res.text if res is not None else ""
+
+            # Evaluasi apakah error dapat diatasi dengan beralih ke model cadangan berikutnya:
+            # 1. 404 Not Found / Model no longer available (seperti gemini-2.5-flash)
+            # 2. 429 Quota Exceeded / Rate Limit untuk model ini
+            # 3. 503 High demand / temporary overload pada model ini
+            # 4. 400 Bad Request terkait model deprecated / unsupported
+            bisa_fallback = False
+            if res is not None:
+                if res.status_code in (404, 503, 429):
+                    bisa_fallback = True
+                elif res.status_code in (400, 403):
+                    teks_lower = res_text.lower()
+                    if any(k in teks_lower for k in [
+                        "resource_exhausted", "quota", "rate limit", 
+                        "no longer available", "not found", "deprecated", "high demand"
+                    ]):
+                        bisa_fallback = True
+
+            # JIKA BISA FALLBACK DAN MASIH ADA MODEL CADANGAN BERIKUTNYA:
+            if bisa_fallback and (model_idx + 1 < len(daftar_model)):
+                model_lama = current_model
+                model_idx += 1
+                current_model = daftar_model[model_idx]
+                try:
+                    pesan_err_singkat = res.json().get('error', {}).get('message', res_text)
+                except Exception:
+                    pesan_err_singkat = res_text
+                print(f"\n [!] Model '{model_lama}' terkendala (HTTP {res.status_code}): {pesan_err_singkat[:100]}...")
+                print(f" [->] Otomatis beralih (fallback) ke model prioritas berikutnya: '{current_model}'...")
+                time.sleep(1)
+                continue  # Ulangi request batch dengan model cadangan tanpa menghentikan sistem
+
+            # JIKA SEMUA MODEL CADANGAN TELAH DICOBA & KUOTA BENAR-BENAR HABIS:
+            token_habis = False
             if res is not None:
                 if res.status_code == 429:
                     token_habis = True
@@ -527,9 +605,9 @@ def proses_penilaian():
                     if any(k in teks_lower for k in ["resource_exhausted", "quota", "rate limit", "token", "api_key_invalid", "expired"]):
                         token_habis = True
 
-            if token_habis:
+            if token_habis or bisa_fallback:
                 print("\n" + "!" * 65)
-                print(" [PERHATIAN] Token / Kuota Gemini API Habis atau Limit Tercapai!")
+                print(" [PERHATIAN] Seluruh Model Cadangan Telah Dicoba / Kuota API Habis!")
                 try:
                     pesan_err = res.json().get('error', {}).get('message', res_text)
                 except Exception:
@@ -545,13 +623,15 @@ def proses_penilaian():
                     break
 
                 current_api_key = kunci_baru
-                current_model = dapatkan_model_aktif(current_api_key)
+                daftar_model = dapatkan_daftar_model_aktif(current_api_key)
+                model_idx = 0
+                current_model = daftar_model[model_idx]
                 print(f" [INFO] Melanjutkan proses koreksi dengan API Key baru dan model: {current_model}...")
                 time.sleep(1)
-                continue  # Ulangi request batch ini
+                continue
 
             else:
-                # Error server lainnya (misal error 500, 503)
+                # Error server lainnya (misal error 500)
                 print(f" [!] Batch Gagal (HTTP {res.status_code if res else 'Unknown'}): {res_text}")
                 print(" [?] Tekan Enter untuk mencoba lagi batch ini, atau 's' untuk lewati batch, atau 'key' ganti API key:")
                 pilihan_err = input(">> ").strip().lower()
@@ -561,7 +641,8 @@ def proses_penilaian():
                     kunci_baru = minta_api_key_baru()
                     if kunci_baru:
                         current_api_key = kunci_baru
-                        current_model = dapatkan_model_aktif(current_api_key)
+                        daftar_model = dapatkan_daftar_model_aktif(current_api_key)
+                        model_idx = 0
                 time.sleep(2)
                 continue
 
