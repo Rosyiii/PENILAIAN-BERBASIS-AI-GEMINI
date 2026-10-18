@@ -239,10 +239,20 @@ python --version
 - *Catatan:* Jika folder ini kosong, sistem otomatis beralih menilai berdasarkan pemahaman konsep umum.
 
 ### B. Menyesuaikan Rubrik Penilaian (`prompts/`)
-Guru atau pengguna dapat menyesuaikan cara AI menilai tugas dengan mengedit file di folder `prompts/`:
-* [prompts/rubrik_dengan_referensi.md](file:///c:/Users/aster/Downloads/Penilaian%20Test/prompts/rubrik_dengan_referensi.md) (Jika menggunakan berkas acuan/kunci/soal di folder `referensi/`)
-* [prompts/rubrik_tanpa_referensi.md](file:///c:/Users/aster/Downloads/Penilaian%20Test/prompts/rubrik_tanpa_referensi.md) (Jika menilai berdasarkan pengetahuan umum AI)
-* Panduan lengkap contoh rubrik berbagai mata pelajaran dapat dilihat di: [prompts/PANDUAN_MENULIS_RUBRIK.md](file:///c:/Users/aster/Downloads/Penilaian%20Test/prompts/PANDUAN_MENULIS_RUBRIK.md).
+
+Agar tidak bingung merangkai kata-kata prompt, kami telah menyediakan **Trik Praktis 5 Detik (Arsitektur 2-File)**:
+
+1. **File Template Copas Gemini Web (Otomatis & Tanpa Pusing):**
+   * [prompts/TEMPLATE_COPAS_GEMINI_WEB_DENGAN_REFERENSI.md](file:///c:/Users/aster/Downloads/Penilaian%20Test/prompts/TEMPLATE_COPAS_GEMINI_WEB_DENGAN_REFERENSI.md) (Jika ada bahan kunci/soal acuan)
+   * [prompts/TEMPLATE_COPAS_GEMINI_WEB_TANPA_REFERENSI.md](file:///c:/Users/aster/Downloads/Penilaian%20Test/prompts/TEMPLATE_COPAS_GEMINI_WEB_TANPA_REFERENSI.md) (Jika tanpa bahan acuan terpisah)
+   * *Cara Pakai:* Buka template di atas, copy seluruh teksnya, paste ke [Gemini Web (Google)](https://gemini.google.com), upload foto soal/kunci Anda, tekan Enter!
+
+2. **Berkas Running Sistem (Yang Dibaca oleh Program):**
+   * [prompts/rubrik_dengan_referensi.md](file:///c:/Users/aster/Downloads/Penilaian%20Test/prompts/rubrik_dengan_referensi.md)
+   * [prompts/rubrik_tanpa_referensi.md](file:///c:/Users/aster/Downloads/Penilaian%20Test/prompts/rubrik_tanpa_referensi.md)
+   * *Cara Pakai:* Cukup timpa (*paste*) hasil balasan dari Gemini Web tadi ke salah satu file running ini. Begitu selesai, langsung jalankan program!
+
+*Panduan lengkap dan contoh rubrik per mata pelajaran: [prompts/PANDUAN_MENULIS_RUBRIK.md](file:///c:/Users/aster/Downloads/Penilaian%20Test/prompts/PANDUAN_MENULIS_RUBRIK.md).*
 
 #### Aturan Mengubah File Prompt:
 1. **Bagian yang BEBAS Diubah / Disesuaikan Guru:**

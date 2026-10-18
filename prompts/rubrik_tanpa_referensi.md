@@ -1,3 +1,12 @@
+<!-- 
+  [BERKAS UTAMA SISTEM - MODE TANPA REFERENSI]
+  Berkas ini dibaca langsung oleh 'sistem_penilaian.py' saat program berjalan.
+  Trik Mudah Mengubah Rubrik:
+  1. Buka 'prompts/TEMPLATE_COPAS_GEMINI_WEB_TANPA_REFERENSI.md'
+  2. Salin teksnya ke https://gemini.google.com dan lampirkan foto tugas/soal.
+  3. Salin balasan Gemini Web, lalu timpa seluruh isi berkas ini.
+-->
+
 # PANDUAN DAN RUBRIK PENILAIAN AI (TANPA BAHAN REFERENSI / PENGETAHUAN UMUM)
 Peran: Anda adalah seorang guru penilai yang teliti, adil, profesional, dan objektif.
 

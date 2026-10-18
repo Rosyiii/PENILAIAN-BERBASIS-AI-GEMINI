@@ -4,6 +4,32 @@ Dokumen ini disusun untuk memudahkan guru dan pengguna awam dalam menyesuaikan k
 
 ---
 
+## 🌟 TRIK PRAKTIS 5 DETIK: Bikin Rubrik Tanpa Pusing (Pakai Gemini Web)
+
+Banyak guru atau pengguna merasa bingung dan ragu ketika harus merangkai kata-kata prompt sendiri. **Anda TIDAK PERLU menulis prompt dari nol!** Kami telah menyiapkan trik 2-file yang sangat mudah:
+
+### Konsep 2 Jenis File:
+1. **File Template Copas Gemini Web** (Untuk bikin prompt otomatis):
+   - [TEMPLATE_COPAS_GEMINI_WEB_DENGAN_REFERENSI.md](file:///c:/Users/aster/Downloads/Penilaian%20Test/prompts/TEMPLATE_COPAS_GEMINI_WEB_DENGAN_REFERENSI.md)
+   - [TEMPLATE_COPAS_GEMINI_WEB_TANPA_REFERENSI.md](file:///c:/Users/aster/Downloads/Penilaian%20Test/prompts/TEMPLATE_COPAS_GEMINI_WEB_TANPA_REFERENSI.md)
+2. **Berkas Running Sistem** (Yang dibaca oleh program saat penilaian berjalan):
+   - [rubrik_dengan_referensi.md](file:///c:/Users/aster/Downloads/Penilaian%20Test/prompts/rubrik_dengan_referensi.md)
+   - [rubrik_tanpa_referensi.md](file:///c:/Users/aster/Downloads/Penilaian%20Test/prompts/rubrik_tanpa_referensi.md)
+
+### Alur Langkah Praktis (Hanya 4 Langkah):
+1. **Buka File Template Copas:**  
+   Pilih salah satu file template copas di atas sesuai kebutuhan Anda (apakah ada bahan referensi/kunci jawaban di folder `referensi/` atau tidak). Salin (*copy*) seluruh teks yang ada di dalamnya.
+2. **Buka Gemini di Browser:**  
+   Buka Google Gemini di browser Anda: [https://gemini.google.com](https://gemini.google.com).
+3. **Tempel Prompt & Lampirkan Foto:**  
+   Tempel (*paste*) teks yang sudah Anda salin ke kolom chat Gemini, lalu lampirkan foto lembar soal / tugas / kunci jawaban Anda, lalu tekan **Kirim / Enter**.
+4. **Salin Balasan & Timpa ke Berkas Running:**  
+   Gemini Web akan membuatkan rubrik terstruktur rapi yang sudah disesuaikan persis dengan foto soal Anda. Salin teks balasan tersebut, lalu buka berkas running yang sesuai (`rubrik_dengan_referensi.md` atau `rubrik_tanpa_referensi.md`), lalu timpa (*paste*) isinya.
+5. **Jalankan Program:**  
+   Tinggal ketik perintah di terminal: `python sistem_penilaian.py` ("oiii jalankan programnya!"). Sistem akan mengeksekusi penilaian dengan presisi tinggi!
+
+---
+
 ## 1. Aturan Dasar: Mana yang Boleh Diubah & Mana yang DILARANG?
 
 | Bagian Prompt | Boleh Diubah? | Penjelasan |
